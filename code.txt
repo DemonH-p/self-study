@@ -1,0 +1,102 @@
+ROI提取
+
+import cv2
+import numpy as np
+
+# 读取图像和特征点
+image = cv2.imread('input.jpg')
+keypoints = cv2.KeyPoint_convert([[(100, 100)], [(150, 200)], [(200, 150)], [(150, 100)]])  # 假设有四个特征点
+
+# 提取特征点的坐标
+points = np.float32([kp.pt for kp in keypoints])
+
+# 计算凸包
+hull = cv2.convexHull(points)
+
+# 创建一个黑色背景图像
+height, width = image.shape[:2]
+mask = np.zeros((height, width), dtype=np.uint8)
+
+# 在黑色背景上绘制凸包区域
+cv2.drawContours(mask, [hull], -1, (255), thickness=cv2.FILLED)
+
+# 将结果保存为新图像
+cv2.imwrite('output.jpg', mask)
+
+或者：
+points = [(100, 200), (150, 250), (200, 300), ...]
+mask = np.zeros_like(image[:,:,0])  # 创建单通道图像
+contour = np.array([points], dtype=np.int32)
+cv2.drawContours(mask, contour, -1, (255), thickness=cv2.FILLED)
+output = cv2.bitwise_and(image, image, mask=mask)
+
+中值滤波：
+
+import cv2
+
+# 读取图像
+image = cv2.imread('input.jpg')
+
+# 应用值滤波
+blurred = cv2.medianBlur(image, ksize)
+
+# 显示结果
+cv2.imshow('Blurred Image', blurred)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+参数 ksize 是一个整数，表示滤波器的内核大小，必须是正奇数。较大的内核尺寸可以提供更强的平滑效果，但也可能导致细节损失。
+
+
+gamma矫正：
+
+import cv2
+import numpy as np
+
+def gamma_correction(image, gamma):
+    # 创建一个与原始图像大小相同的空白画布
+    corrected_image = np.zeros(image.shape, dtype=np.uint8)
+
+    # 对每个通道的像素值进行 Gamma 校正
+    for channel in range(image.shape[2]):
+        corrected_image[:, :, channel] = np.power(image[:, :, channel] / 255.0, gamma) * 255.0
+
+    # 转换为无符号8位整型
+    corrected_image = np.uint8(corrected_image)
+
+    return corrected_image
+
+# 读取图像
+image = cv2.imread('input.jpg')
+
+# 设置 Gamma 值（小于1会增强亮度对比度，大于1会降低亮度对比度）
+gamma = 0.5
+
+# 进行 Gamma 矫正
+corrected_image = gamma_correction(image, gamma)
+
+# 显示原始图像和矫正后的图像
+cv2.imshow('Original Image', image)
+cv2.imshow('Corrected Image', corrected_image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+灰度化和二值化：
+# 灰度化
+gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# 应用二值化
+ret, binary = cv2.threshold(image, threshold_value, max_value, threshold_type)
+threshold_value：用于将像素值与之比较的阈值。
+max_value：如果像素值高于阈值，则该像素的输出值。
+threshold_type：用于指定二值化的类型，有多种可选类型，如 cv2.THRESH_BINARY, cv2.THRESH_BINARY_INV 等。
+# 自适应阈值二值化
+binary_image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+src：输入图像，应为灰度图像。
+maxValue：超过阈值的像素值将被设置的值。在这里，我们设定为255，即白色。
+adaptiveMethod：表示采用的自适应阈值计算方法。常用的有cv2.ADAPTIVE_THRESH_MEAN_C和cv2.ADAPTIVE_THRESH_GAUSSIAN_C，分别表示使用局部区域的均值和高斯加权平均值来计算阈值。
+thresholdType：用于确定阈值后的像素值操作类型。常用的有cv2.THRESH_BINARY和cv2.THRESH_BINARY_INV，分别表示二值化和反二值化。
+blockSize：指定用于计算每个像素的阈值的邻域大小。通常设置为奇数。
+C：从计算出的阈值中减去的常数。它用于对阈值进行微调。
+
+# Canny边缘检测
+edges = cv2.Canny(image, threshold1, threshold2)
+threshold1和threshold2：表示边缘强度梯度的阈值。较低的阈值用于边缘连接，较高的阈值用于边缘起始点。默认100,200
