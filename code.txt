@@ -7,22 +7,27 @@ gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 edges = cv2.Canny(gray, 50, 150)
 
 # 轮廓检测
-contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-# 轮廓拟合和计算中线
-for contour in contours:
-    # 对每个轮廓点集进行拟合
-    curve = np.squeeze(contour)
-    [vx, vy, x, y] = cv2.fitLine(curve, cv2.DIST_L2, 0, 0.01, 0.01)
-    
-    # 计算两个点以形成直线表示拟合结果
-    lefty = int((-x * vy / vx) + y)
-    righty = int(((gray.shape[1] - x) * vy / vx) + y)
+# 选择要分割的两个轮廓，这里使用第0和第1个轮廓
+contour_0 = contours[0]
+contour_1 = contours[1]
 
-    # 绘制中线
-    cv2.line(image, (gray.shape[1] - 1, righty), (0, lefty), (0, 255, 0), 2)
+# 拟合直线
+[vx0, vy0, x0, y0] = cv2.fitLine(contour_0, cv2.DIST_L2, 0, 0.01, 0.01)
+[vx1, vy1, x1, y1] = cv2.fitLine(contour_1, cv2.DIST_L2, 0, 0.01, 0.01)
+
+# 计算交点
+a = np.array([[vx0, -vy0], [vx1, -vy1]])
+b = np.array([[-vx0*x0+vy0*y0], [-vx1*x1+vy1*y1]])
+intersection = np.linalg.solve(a, b)
+x = int(intersection[0])
+y = int(intersection[1])
+
+# 绘制分割线
+cv2.line(image, (x-1000*vy0, y-1000*vx0), (x+1000*vy0, y+1000*vx0), (0, 255, 0), 2)
 
 # 显示结果图像
-cv2.imshow("Contours with Middle Line", image)
+cv2.imshow("Contours with Segmentation Line", image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
